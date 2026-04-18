@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#07070a">
+<title>TENSE AF · Node 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   TENSE AF — NODE 3 (v3)
+   Lysergic atmosphere + decision-centred UI + bulletproof input
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #07070a;
+  --text: #efefef;
+  --muted: #8a8a98;
+  --tc: #f5c518;
+  --tc-dim: rgba(245,197,24,0.12);
+  --tc-glow: rgba(245,197,24,0.4);
+  --green: #22c55e;
+  --green-glow: rgba(34,197,94,0.35);
+  --red: #ef4444;
+  --red-glow: rgba(239,68,68,0.35);
+  
+  /* Driven by cognitiveState */
+  --cog-hesitation: 0;
+  --cog-confidence: 0.4;
+  --cog-instability: 0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; min-height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AURORA BACKGROUND — rich, slow, alive
+   ═══════════════════════════════════════════════════════════════ */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -15%;
+  background:
+    radial-gradient(ellipse 65% 55% at 18% 15%, hsla(275, 85%, 58%, 0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 85% 82%, hsla(190, 95%, 58%, 0.24) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 45% at 50% 60%, hsla(48, 100%, 60%, 0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 55% at 10% 85%, hsla(330, 85%, 60%, 0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 40% at 75% 25%, hsla(155, 75%, 55%, 0.16) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(50px);
+  animation: aurora-drift 80s ease-in-out infinite, aurora-breathe 11s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  transition: opacity 0.8s, filter 0.8s;
+}
+
+/* Second aurora layer — chromatic noise for depth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 280px 280px;
+  mix-blend-mode: overlay;
+  animation: noise-shimmer 4s steps(6) infinite;
+}
+
+@keyframes aurora-drift {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  20% { transform: translate(4%, -2%) scale(1.08) rotate(2deg); }
+  40% { transform: translate(-2%, 3%) scale(1.12) rotate(-1.5deg); }
+  60% { transform: translate(2%, 2%) scale(1.06) rotate(1deg); }
+  80% { transform: translate(-3%, -1%) scale(1.10) rotate(-2deg); }
+}
+
+@keyframes aurora-breathe {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1.0; }
+}
+
+@keyframes noise-shimmer {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(3px, -2px); }
+  66% { transform: translate(-2px, 3px); }
+}
+
+/* During gameplay: aurora recedes so UI owns attention. Lower = more focus. */
+body.in-game::before {
+  opacity: 0.4;
+  filter: blur(70px);
+}
+
+/* Aurora destabilises slightly with instability */
+body.in-game::before {
+  transform: translate(calc(var(--cog-instability) * 8px - 4px), 0);
+}
+
+/* PEAK STATE — earned transcendence has a visual temperature.
+   Hue-rotate breathing makes the whole environment feel alive.
+   Only active when lift is genuinely high. */
+body.peaked::before {
+  opacity: 0.55;
+  filter: blur(60px) saturate(1.25);
+  animation: aurora-drift 60s ease-in-out infinite,
+             aurora-breathe 8s ease-in-out infinite,
+             peak-hue 14s ease-in-out infinite;
+}
+
+@keyframes peak-hue {
+  0%, 100% { filter: blur(60px) saturate(1.25) hue-rotate(0deg); }
+  50% { filter: blur(58px) saturate(1.4) hue-rotate(18deg); }
+}
+
+/* Card gains a chromatic halo when confident */
+body.confident .q-card {
+  box-shadow:
+    0 0 0 1px rgba(245, 197, 24, 0.08),
+    0 0 40px rgba(168, 85, 247, 0.10),
+    0 0 80px rgba(34, 211, 238, 0.06);
+}
+
+/* Prompt text gets chromatic aberration at peak lift —
+   RGB split suggests the signal is too rich for a single channel. */
+body.peaked .prompt {
+  text-shadow:
+    -0.5px 0 0 rgba(244, 114, 182, 0.55),
+    0.5px 0 0 rgba(34, 211, 238, 0.55),
+    0 0 20px rgba(255, 255, 255, 0.15);
+  animation: chromatic-drift 5s ease-in-out infinite;
+}
+
+@keyframes chromatic-drift {
+  0%, 100% {
+    text-shadow:
+      -0.5px 0 0 rgba(244, 114, 182, 0.55),
+      0.5px 0 0 rgba(34, 211, 238, 0.55),
+      0 0 20px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    text-shadow:
+      -1px 0 0 rgba(244, 114, 182, 0.65),
+      1px 0 0 rgba(34, 211, 238, 0.65),
+      0 0 28px rgba(253, 224, 71, 0.18);
+  }
+}
+
+.wrap {
+  width: 100%;
+  max-width: 560px;
+  position: relative;
+  z-index: 1;
+}
+
+.screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  animation: screen-enter 0.55s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.screen.active { display: flex; }
+
+@keyframes screen-enter {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  min-height: 40px;
+}
+
+.audio-toggle {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.25, 1);
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.audio-toggle:hover {
+  border-color: var(--tc);
+  color: var(--tc);
+  background: var(--tc-dim);
+  box-shadow: 0 0 24px var(--tc-glow);
+  transform: rotate(15deg);
+}
+
+.audio-toggle.muted { opacity: 0.35; }
+
+/* ═══════════════════════════════════════════════════════════════
+   HOME — full lysergic wordmark
+   ═══════════════════════════════════════════════════════════════ */
+
+#home {
+  min-height: 78vh;
+  justify-content: center;
+}
+
+.wordmark {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 20vw, 130px);
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg,
+    #ffffff 0%,
+    #c084fc 12%,
+    #22d3ee 28%,
+    #fde047 44%,
+    #f472b6 60%,
+    #a78bfa 76%,
+    #ffffff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: lysergic-sweep 14s ease-in-out infinite, home-breathe 6s ease-in-out infinite;
+  line-height: 0.92;
+  text-align: center;
+  text-shadow: 0 0 80px rgba(168,85,247,0.15);
+}
+
+@keyframes lysergic-sweep {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+@keyframes home-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.015) translateY(-3px); }
+}
+
+.node-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 10px 0;
+  animation: eyebrow-fade 8s ease-in-out infinite;
+}
+
+.node-label::before {
+  content: '◇ ';
+  color: var(--tc);
+  text-shadow: 0 0 8px var(--tc-glow);
+}
+
+@keyframes eyebrow-fade {
+  0%, 100% { opacity: 0.55; letter-spacing: 0.4em; }
+  50% { opacity: 0.95; letter-spacing: 0.45em; }
+}
+
+.tagline {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 19px;
+  color: var(--muted);
+  margin-bottom: 36px;
+  text-align: center;
+  max-width: 380px;
+  line-height: 1.5;
+  padding: 0 16px;
+  letter-spacing: -0.005em;
+}
+
+.tagline em {
+  color: var(--tc);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn-primary {
+  background: transparent;
+  color: var(--tc);
+  border: 1.5px solid var(--tc);
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 16px 40px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.25, 1);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, var(--tc-dim) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.btn-primary:hover {
+  color: #000;
+  background: var(--tc);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px var(--tc-glow), 0 0 70px var(--tc-glow);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 10px 24px;
+  cursor: pointer;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GAME — the decision moment
+   ═══════════════════════════════════════════════════════════════ */
+
+.progress-wrap {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 28px;
+  box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--tc) 0%, #f59e0b 100%);
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.25, 1);
+  box-shadow: 0 0 16px var(--tc-glow);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  animation: progress-shimmer 2.5s linear infinite;
+}
+
+@keyframes progress-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.q-card {
+  width: 100%;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: 2px solid var(--tc);
+  padding: 38px 30px;
+  margin-bottom: 20px;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  transition: border-color 0.35s, background 0.35s, box-shadow 0.35s, transform 0.3s;
+  isolation: isolate;
+  /* Hesitation compresses the card subtly */
+  transform: scale(calc(1 - var(--cog-hesitation) * 0.015));
+}
+
+/* When instability is high, card jitters visibly */
+body.unstable .q-card.q-idle {
+  animation: card-jitter 0.6s ease-in-out infinite;
+}
+
+/* UGLINESS UNDER PRESSURE — the beautiful mask slips */
+body.unstable .q-card {
+  filter: contrast(1.25) brightness(0.88) saturate(0.85);
+}
+
+body.unstable .prompt {
+  letter-spacing: calc(-0.01em - var(--cog-instability) * 0.04em);
+  transform: translateX(calc(var(--cog-instability) * 3px - 1.5px));
+  transition: letter-spacing 0.3s, transform 0.25s;
+}
+
+body.unstable .context {
+  opacity: calc(0.75 - var(--cog-instability) * 0.4);
+}
+
+/* Aurora gets harsher, blur-less, as instability climbs */
+body.unstable::before {
+  filter: blur(calc(70px - var(--cog-instability) * 40px)) contrast(1.2);
+}
+
+@keyframes card-jitter {
+  0%, 100% { transform: scale(calc(1 - var(--cog-hesitation) * 0.015)) translateX(0); }
+  25% { transform: scale(calc(1 - var(--cog-hesitation) * 0.015)) translateX(-2px); }
+  50% { transform: scale(calc(1 - var(--cog-hesitation) * 0.015)) translateX(1px); }
+  75% { transform: scale(calc(1 - var(--cog-hesitation) * 0.015)) translateX(-1px); }
+}
+
+/* Rich radial glow inside the card — doesn't exist in stripped version */
+.q-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top, var(--tc-dim) 0%, transparent 65%);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: -1;
+  animation: card-wash 11s ease-in-out infinite;
+}
+
+@keyframes card-wash {
+  0%, 100% { opacity: 0.45; transform: translateY(0); }
+  50% { opacity: 0.7; transform: translateY(4px); }
+}
+
+/* Reactive card states */
+.q-card.q-idle {
+  animation: card-idle 9s ease-in-out infinite;
+}
+@keyframes card-idle {
+  0%, 100% { box-shadow: inset 0 0 40px rgba(255,255,255,0.01), 0 4px 24px rgba(0,0,0,0.3); }
+  50% { box-shadow: inset 0 0 60px rgba(255,255,255,0.03), 0 8px 34px rgba(0,0,0,0.35); }
+}
+
+.q-card.q-committed {
+  transform: scale(0.97);
+  border-color: var(--tc);
+  background: rgba(245,197,24,0.05);
+  animation: none;
+  box-shadow: 0 0 60px var(--tc-glow), inset 0 0 45px rgba(245,197,24,0.08);
+  transition: transform 0.12s cubic-bezier(0.3, 1.2, 0.5, 1), border-color 0.2s, background 0.2s, box-shadow 0.3s;
+}
+
+.q-card.q-aligned {
+  border-top-color: var(--green);
+  border-color: rgba(34,197,94,0.35);
+  box-shadow: 0 0 50px var(--green-glow), inset 0 0 40px rgba(34,197,94,0.04);
+  animation: none;
+}
+
+.q-card.q-misaligned {
+  border-top-color: var(--red);
+  border-color: rgba(239,68,68,0.35);
+  box-shadow: 0 0 50px var(--red-glow), inset 0 0 40px rgba(239,68,68,0.04);
+  animation: card-misalign 0.45s ease-out;
+}
+
+@keyframes card-misalign {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+.prompt {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(26px, 6.5vw, 34px);
+  font-weight: 400;
+  line-height: 1.35;
+  color: #fafafa;
+  letter-spacing: -0.01em;
+  min-height: 52px;
+  text-align: center;
+  padding: 0 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.context {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: #c8c8d4;
+  opacity: 0.95;
+  text-align: center;
+  margin-bottom: 22px;
+  padding: 0 12px;
+  line-height: 1.55;
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.4s;
+}
+
+/* Context fades slightly after commit — attention moves to reveal */
+.q-card.q-aligned .context,
+.q-card.q-misaligned .context {
+  opacity: 0.45;
+}
+
+.reveal {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: clamp(16px, 4.2vw, 20px);
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 22px;
+  min-height: 28px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s, color 0.5s, transform 0.5s;
+  padding: 0 8px;
+  position: relative;
+  z-index: 1;
+  transform: translateY(6px);
+}
+
+.reveal.reveal-aligned,
+.reveal.reveal-misaligned,
+.reveal.reveal-withheld {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal.reveal-aligned { color: #a8e6b8; text-shadow: 0 0 12px rgba(34,197,94,0.25); }
+.reveal.reveal-misaligned { color: #ff9b9b; text-shadow: 0 0 12px rgba(239,68,68,0.25); }
+.reveal.reveal-withheld {
+  color: #7a7a88;
+  letter-spacing: 0.02em;
+  font-style: italic;
+  opacity: 0.68;
+  text-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OPTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.option-btn {
+  background: rgba(245,197,24,0.05);
+  border: 1.5px solid rgba(245,197,24,0.25);
+  color: var(--text);
+  font-family: 'Instrument Serif', serif;
+  font-size: 23px;
+  padding: 24px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s, opacity 0.25s, color 0.15s;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .option-btn:hover:not(.option-btn-locked):not(.option-chosen):not(.option-notchosen) {
+    border-color: var(--tc);
+    background: var(--tc-dim);
+    color: var(--tc);
+    box-shadow: 0 4px 24px var(--tc-glow);
+  }
+}
+
+/* INSTANT LOCK on touch-down */
+.option-btn-locked {
+  border-color: var(--tc);
+  background: rgba(245,197,24,0.25);
+  transform: scale(0.97);
+  box-shadow: 0 0 50px var(--tc-glow), inset 0 0 25px rgba(245,197,24,0.25);
+  color: var(--tc);
+}
+
+/* REINFORCE after 400ms hold */
+.option-btn-reinforced {
+  background: var(--tc);
+  color: #000;
+  border-color: var(--tc);
+  box-shadow: 0 0 60px var(--tc-glow), inset 0 0 30px rgba(255,255,255,0.1);
+}
+
+/* Other options recede during press */
+.option-btn-receded {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+
+/* After commit — chosen vs not */
+.option-chosen {
+  border-color: var(--tc);
+  background: rgba(245,197,24,0.15);
+  color: var(--tc);
+  box-shadow: 0 0 30px var(--tc-glow);
+}
+
+.option-notchosen {
+  opacity: 0.25;
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   END SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+
+#end { text-align: center; }
+
+.end-mark {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(80px, 20vw, 120px);
+  color: var(--tc);
+  text-shadow: 0 0 60px var(--tc-glow), 0 0 120px var(--tc-glow);
+  line-height: 1;
+  margin-bottom: 18px;
+  animation: grade-float 4s ease-in-out infinite;
+}
+
+@keyframes grade-float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+.end-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 36px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE TONE SHIFTS (subtle)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.phase-entry { --tc: #f5c518; }
+body.phase-stability { --tc: #f5c518; }
+body.phase-pressure { --tc: #fb923c; }
+body.phase-release { --tc: #a78bfa; }
+
+body.phase-pressure .q-card { border-top-width: 3px; }
+body.phase-release .q-card { border-top-width: 2px; }
+
+/* When pressure is on, derive glow from current --tc */
+body.phase-pressure { --tc-glow: rgba(251,146,60,0.4); --tc-dim: rgba(251,146,60,0.14); }
+body.phase-release { --tc-glow: rgba(167,139,250,0.4); --tc-dim: rgba(167,139,250,0.14); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCESSIBILITY / MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.1s !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body { padding: 14px; }
+  .q-card { padding: 28px 22px; min-height: 200px; }
+  .prompt { font-size: 24px; }
+  .context { font-size: 12px; margin-bottom: 18px; }
+  .option-btn { font-size: 19px; padding: 20px 10px; min-height: 68px; }
+  .reveal { font-size: 16px; margin-top: 18px; }
+  .tagline { font-size: 17px; }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="header">
+      <div style="width:40px"></div>
+      <button class="audio-toggle" onclick="audio && (audio.toggleMute(), updateAudioIcon())">♪</button>
+    </div>
+    <div class="wordmark">TENSE AF</div>
+    <div class="node-label">Node 3 · Finished or Open</div>
+    <div class="tagline">Past Simple <em>lands</em>. Present Perfect <em>rides</em>. The groove knows which is which.</div>
+    <button class="btn-primary" onclick="startEverything()">Start</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="screen">
+    <div class="header">
+      <div style="width:40px"></div>
+      <button class="audio-toggle" onclick="audio && (audio.toggleMute(), updateAudioIcon())">♪</button>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progress" style="width:0%"></div>
+    </div>
+
+    <div class="q-card q-idle">
+      <div class="context" id="context"></div>
+      <div class="prompt" id="prompt">&nbsp;</div>
+      <div class="reveal" id="reveal">&nbsp;</div>
+    </div>
+
+    <div class="options" id="options"></div>
+
+    <button class="btn-secondary" onclick="goHome()" style="margin-top: 16px;">End</button>
+  </div>
+
+  <!-- END -->
+  <div id="end" class="screen">
+    <div class="header">
+      <div style="width:40px"></div>
+      <button class="audio-toggle" onclick="audio && (audio.toggleMute(), updateAudioIcon())">♪</button>
+    </div>
+    <div class="end-mark">◈</div>
+    <div class="end-sub" id="endSub">—</div>
+    <button class="btn-primary" onclick="goHome()">Again</button>
+  </div>
+
+</div>
+
+<!-- SCRIPTS (dependency order) -->
+<script src="tense-af-cognitive-state.js"></script>
+<script src="tense-af-input-layer.js"></script>
+<script src="tense-af-mode.js"></script>
+<script src="tense-af-groove.js"></script>
+<script src="tense-af-bass.js"></script>
+<script src="tense-af-audio.js"></script>
+<script src="tense-af-node3.js"></script>
+<script src="tense-af-content.js"></script>
+<script src="tense-af-ui-layer.js"></script>
+
+<script>
+const audio = new AudioEngine();
+uiLayer.init();
+
+function updateAudioIcon() {
+  document.querySelectorAll('.audio-toggle').forEach(b => {
+    b.classList.toggle('muted', audio.muted);
+  });
+}
+
+async function startEverything() {
+  try {
+    audio.init();
+    if (audio.ctx && audio.ctx.state === 'suspended') {
+      await audio.ctx.resume();
+    }
+    audio.start();
+    document.body.classList.add('in-game');
+    uiLayer.startGame();
+    
+    const progressEl = document.getElementById('progress');
+    const tickProgress = () => {
+      const p = contentLayer.getProgress();
+      if (progressEl) progressEl.style.width = p.pct + '%';
+      requestAnimationFrame(tickProgress);
+    };
+    tickProgress();
+  } catch (err) {
+    console.error('Start error:', err);
+    uiLayer.startGame();
+  }
+}
+
+function goHome() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('home').classList.add('active');
+  document.body.classList.remove('in-game');
+  cognitiveState.reset();
+  contentLayer.reset();
+  if (audio.running) audio.stop();
+}
+</script>
+
+</body>
+</html>
